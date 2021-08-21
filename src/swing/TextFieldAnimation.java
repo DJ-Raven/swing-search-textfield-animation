@@ -52,6 +52,9 @@ public class TextFieldAnimation extends JTextField {
     private boolean show;
     private float speed = 1f;
     private float location = -1;
+    private EventTextField event;
+    private EventCallBack callBack;
+    private Thread thread;
 
     public TextFieldAnimation() {
         super.setBackground(new Color(255, 255, 255, 0)); //  Remove background
@@ -85,11 +88,26 @@ public class TextFieldAnimation extends JTextField {
                                 show = false;
                                 location = -1;
                                 timer.start();
+                                if (thread != null) {
+                                    thread.interrupt();
+                                }
+                                if (event != null) {
+                                    event.onCancel();
+                                }
                             } else {
                                 setEditable(false);
                                 show = true;
                                 location = getWidth();
                                 timer.start();
+                                if (event != null) {
+                                    thread = new Thread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            event.onPressed(callBack);
+                                        }
+                                    });
+                                    thread.start();
+                                }
                             }
                         }
                     }
@@ -116,6 +134,15 @@ public class TextFieldAnimation extends JTextField {
                 }
             }
         });
+        callBack = new EventCallBack() {
+            @Override
+            public void done() {
+                setEditable(true);
+                show = false;
+                location = -1;
+                timer.start();
+            }
+        };
     }
 
     @Override
@@ -160,7 +187,7 @@ public class TextFieldAnimation extends JTextField {
     @Override
     public void paint(Graphics g) {
         super.paint(g);
-        if (getText().length() == 0) {
+        if (show == false && getText().length() == 0) {
             int h = getHeight();
             ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             Insets ins = getInsets();
@@ -200,5 +227,9 @@ public class TextFieldAnimation extends JTextField {
     @Override
     public void setBackground(Color color) {
         this.backgroundColor = color;
+    }
+
+    public void addEvent(EventTextField event) {
+        this.event = event;
     }
 }
